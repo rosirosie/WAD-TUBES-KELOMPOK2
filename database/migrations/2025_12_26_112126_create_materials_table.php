@@ -6,21 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('materials', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('course');      // Mata Kuliah
+            $table->string('week');        // Minggu ke
+            $table->string('title');       // Judul Materi
+            $table->string('file_path');   // Lokasi file
+            $table->enum('visibility', ['public', 'private'])->default('public');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('materials');
     }

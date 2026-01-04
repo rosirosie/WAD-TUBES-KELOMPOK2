@@ -46,12 +46,27 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    
-    public function tasks() {
-        return $this->hasMany(Task::class);
+
+    // --- BAGIAN YANG DITAMBAHKAN/DIUBAH ---
+
+    // 1. Relasi ke Groups (Sebagai Anggota)
+    // Menghubungkan user ke banyak group lewat tabel pivot 'group_user'
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_user');
     }
 
-    public function groupMembers() {
-        return $this->hasMany(GroupMember::class);
+    // 2. Relasi ke Groups (Sebagai Ketua)
+    // Menghubungkan user ke group yang dia buat sendiri
+    public function chairedGroups()
+    {
+        return $this->hasMany(Group::class, 'user_id');
+    }
+
+    // 3. Relasi ke Tasks
+    // Menghubungkan user ke tugas-tugas yang diberikan kepadanya
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
     }
 }
