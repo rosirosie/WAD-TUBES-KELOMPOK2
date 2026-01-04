@@ -2,25 +2,24 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Material extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'user_id', 
-        'course_id', 
-        'title', 
-        'file_path', 
-        'file_type', 
-        'week_number', 
-        'description'
+        'user_id',
+        'course',
+        'week',
+        'title',
+        'file_path',
+        'visibility',
     ];
 
-    public function user() {
-        return $this->belongsTo(User::class); // Siapa yang upload
-    }
-
-    public function course() {
-        return $this->belongsTo(Course::class);
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
