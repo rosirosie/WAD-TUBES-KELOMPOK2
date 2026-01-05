@@ -9,27 +9,32 @@ class Task extends Model
 {
     use HasFactory;
 
+    /**
+     * Kolom yang dapat diisi secara massal.
+     * Kita hapus user_id karena tidak perlu mencatat admin pembuat.
+     */
     protected $fillable = [
-        'user_id',
-        'course_id',
-        'title',
-        'description',
-        'due_date',
-        'is_completed',
+        'course',
+        'title', 
+        'status', 
+        'deadline',
+        'user_id'
     ];
 
+    /**
+     * Casting tipe data kolom.
+     * Mengubah 'deadline' menjadi objek Carbon agar fungsi tanggal di View tidak error.
+     */
     protected $casts = [
-        'due_date' => 'datetime',
-        'is_completed' => 'boolean',
+        'deadline' => 'date',
     ];
 
-    public function user()
+    /**
+     * Relasi ke model Group.
+     * Tetap dipertahankan jika Anda ingin membagi tugas per kelompok kelas.
+     */
+    public function group()
     {
-        return $this->belongsTo(User::class);
-    }
-
-    public function course()
-    {
-        return $this->belongsTo(Course::class);
+        return $this->belongsTo(Group::class);
     }
 }

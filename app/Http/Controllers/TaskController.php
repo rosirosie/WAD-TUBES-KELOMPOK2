@@ -5,51 +5,105 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Http; // WAJIB DITAMBAHKAN
 
 class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Task::where('user_id', Auth::id());
+        $user = Auth::user();
 
-        if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+        // --- INTEGRASI ZENQUOTES API ---
+        try {
+            // Mengambil kutipan acak dari API
+            $response = Http::get('https://zenquotes.io/api/random');
+            $quote = $response->json()[0];
+        } catch (\Exception $e) {
+            // Data cadangan jika API gagal dimuat
+            $quote = [
+                'q' => 'Pendidikan adalah senjata paling mematikan di dunia, karena dengan pendidikan, Anda dapat mengubah dunia.',
+                'a' => 'Nelson Mandela'
+            ];
         }
 
-        if ($request->status == 'upcoming') {
-            $query->where('due_date', '>=', Carbon::now())
-                  ->where('is_completed', false);
-        } else if ($request->status == 'completed') {
-            $query->where('is_completed', true);
+        $query = Task::query();
+
+        // Filter Status
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
         }
 
-        $tasks = $query->orderBy('due_date', 'asc')->get();
+        // Sorting: Status (Pending > Progress > Done) kemudian Deadline terdekat
+        $tasks = $query->orderByRaw("FIELD(status, 'pending', 'progress', 'done')")
+                       ->orderBy('deadline', 'asc')
+                       ->get();
 
-        return view('tasks.index', compact('tasks'));
+        // Mengirimkan variabel $quote ke view
+        return view('tasks.index', compact('tasks', 'quote'));
     }
 
-    public function show($id)
+    public function store(Request $request)
     {
-        $task = Task::findOrFail($id);
-        return view('tasks.show', compact('tasks'));
+        if (strtolower(Auth::user()->role) !== 'admin') { 
+            abort(403, 'Hanya Admin yang dapgat membuat tugas kelas.'); 
+        }
+
+        $validated = $request->validate([
+            'course'   => 'required|string|max:100',
+            'title'    => 'required|string|max:255',
+            'deadline' => 'required|date',
+        ]);
+
+        Task::create([
+            'course'   => $validated['course'],
+            'title'    => $validated['title'],
+            'deadline' => $validated['deadline'],
+            'status'   => 'pending',
+            'user_id'  => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Tugas kelas berhasil disebarkan!');
     }
 
-    public function complete($id)
+    public function update(Request $request, Task $task)
     {
-        $task = Task::findOrFail($id);
-        $task->update(['is_completed' => true]);
+        $user = Auth::user();
+        $isAdmin = strtolower($user->role) === 'admin';
+        
+        $rules = [
+            'status' => 'nullable|in:pending,progress,done'
+        ];
+        
+        if ($isAdmin) {
+            $rules['course']   = 'nullable|string|max:100';
+            $rules['title']    = 'nullable|string|max:255';
+            $rules['deadline'] = 'nullable|date';
+        }
 
-        return redirect()->back()->with('success', 'Tugas berhasil diselesaikan');
+        $validated = $request->validate($rules);
+
+        if ($request->has('status')) {
+            $task->status = $validated['status'];
+        }
+
+        if ($isAdmin) {
+            if ($request->has('course'))   $task->course = $validated['course'];
+            if ($request->has('title'))    $task->title = $validated['title'];
+            if ($request->has('deadline')) $task->deadline = $validated['deadline'];
+        }
+
+        $task->save();
+
+        return back()->with('success', 'Tugas berhasil diperbarui!');
     }
 
-    public function scopeUpcoming($query)
+    public function destroy(Task $task)
     {
-        return $query->where('due_date', '>=', now())->where('is_completed', false);
-    }
-
-    public function scopeCompleted($query)
-    {
-        return $query->where('is_completed', true);
+        if (strtolower(Auth::user()->role) !== 'admin') { 
+            abort(403); 
+        }
+        
+        $task->delete();
+        return back()->with('success', 'Tugas kelas telah dihapus.');
     }
 }
