@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Carbon\Carbon; 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http; 
 use App\Models\Announcement;
 use App\Models\Schedule;
 use App\Models\Task;
@@ -33,6 +34,62 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * FUNGSI EXPORT (TAMBAHAN BARU)
+     * Menghasilkan ringkasan Dashboard dalam format CSV
+     */
+    public function exportSummary()
+    {
+        $fileName = 'Ringkasan_Dashboard_' . date('Y-m-d') . '.csv';
+        
+        // Ambil data untuk ringkasan
+        $stats = [
+            'Pending Tasks' => Task::where('status', '!=', 'done')->count(),
+            'Completed Tasks' => Task::where('status', 'done')->count(),
+            'Total Materials' => Material::count(),
+        ];
+        
+        $pendingTasks = Task::where('status', '!=', 'done')->orderBy('deadline', 'asc')->get();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use ($stats, $pendingTasks) {
+            $file = fopen('php://output', 'w');
+
+            // 1. Bagian Statistik
+            fputcsv($file, ['--- STATISTIK BELAJAR ---']);
+            foreach ($stats as $label => $value) {
+                fputcsv($file, [$label, $value]);
+            }
+
+            fputcsv($file, []); // Baris Kosong
+
+            // 2. Bagian Daftar Tugas Pending
+            fputcsv($file, ['--- DAFTAR TUGAS (PENDING/PROGRESS) ---']);
+            fputcsv($file, ['No', 'Mata Kuliah', 'Judul Tugas', 'Deadline', 'Status']);
+
+            foreach ($pendingTasks as $index => $task) {
+                fputcsv($file, [
+                    $index + 1,
+                    $task->course,
+                    $task->title,
+                    $task->deadline ? $task->deadline->format('d-m-Y') : '-',
+                    ucfirst($task->status)
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     private function getAllDashboardData()
     {
         $user = Auth::user();
@@ -43,19 +100,42 @@ class DashboardController extends Controller
         $hariIniIndo = $today->translatedFormat('l'); 
         $hariBesokIndo = $today->copy()->addDay()->translatedFormat('l');
 
-        // 2. LOGIKA CUACA
-        $cuaca = [
-            'tanggal' => $today->translatedFormat('l, d F Y'),
-            'kota' => 'Bandung',
-            'suhu' => '24',
-            'deskripsi' => 'Cerah Berawan'
-        ];
+        // 2. LOGIKA CUACA (API EKSTERNAL DENGAN KEAMANAN)
+        $apiKey = "36ef06dab6afab28a1a456df2bf886f7"; 
+        $kota = "Bandung";
+
+        try {
+            $response = Http::timeout(2)->get("https://api.openweathermap.org/data/2.5/weather", [
+                'q' => $kota,
+                'appid' => $apiKey,
+                'units' => 'metric',
+                'lang' => 'id'
+            ]);
+
+            if ($response->successful()) {
+                $rawCuaca = $response->json();
+                $cuaca = [
+                    'tanggal' => $today->translatedFormat('l, d F Y'),
+                    'kota' => $rawCuaca['name'],
+                    'suhu' => round($rawCuaca['main']['temp']),
+                    'deskripsi' => $rawCuaca['weather'][0]['description']
+                ];
+            } else {
+                throw new \Exception("Gagal mengambil data");
+            }
+        } catch (\Exception $e) {
+            $cuaca = [
+                'tanggal' => $today->translatedFormat('l, d F Y'),
+                'kota' => 'Bandung',
+                'suhu' => '--',
+                'deskripsi' => 'Data tidak tersedia (Cek Internet/API Key)'
+            ];
+        }
 
         // 3. AMBIL PENGUMUMAN TERBARU
         $announcement = Announcement::latest()->first();
 
         // A. Statistik Ringkas
-        // PERBAIKAN: Hapus filter user_id karena tugas sekarang bersifat sekelas
         $stats = [
             'pending_tasks' => Task::where('status', '!=', 'done')->count(),
             'completed_tasks' => Task::where('status', 'done')->count(),
@@ -63,7 +143,6 @@ class DashboardController extends Controller
         ];
 
         // B. Jadwal Hari Ini
-        // PERBAIKAN: Jadwal diambil secara umum untuk satu kelas
         $todaysSchedules = Schedule::where('day', $hariIniIndo)
                                 ->orderBy('start_time', 'asc')
                                 ->get();
@@ -74,7 +153,6 @@ class DashboardController extends Controller
                                     ->get();
 
         // D. Tugas (Deadline Hari Ini)
-        // PERBAIKAN: Hapus filter user_id
         $todaysTasks = Task::whereDate('deadline', $today->format('Y-m-d'))
                         ->where('status', '!=', 'done') 
                         ->get();

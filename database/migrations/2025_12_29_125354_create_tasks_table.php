@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             // Menghubungkan tugas ke user yang sedang login
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('course');
             $table->string('title');
             $table->text('description')->nullable();
             $table->date('deadline');

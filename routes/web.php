@@ -30,18 +30,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/check-updates', [DashboardController::class, 'checkUpdates'])->name('dashboard.updates');
 
-    // Fitur Utama
+    // --- FITUR EXPORT (Diletakkan di atas agar tidak bentrok dengan resource ID) ---
+    Route::get('/dashboard/export', [DashboardController::class, 'exportSummary'])->name('dashboard.export');
+    Route::get('/tasks-export', [TaskController::class, 'exportTasks'])->name('tasks.export');
+    Route::get('/materials-export', [MaterialController::class, 'exportMaterials'])->name('materials.export');
+    Route::get('/groups/export', [GroupController::class, 'exportGroups'])->name('groups.export');
+
+    // --- FITUR UTAMA ---
     Route::resource('tasks', TaskController::class);
     Route::resource('schedules', ScheduleController::class);
     Route::resource('materials', MaterialController::class);
     Route::resource('announcements', AnnouncementController::class);
+    Route::resource('groups', GroupController::class);
     
     // --- FITUR GROUPS (SINKRONISASI TOTAL) ---
     
-    Route::resource('groups', GroupController::class);
-
     // a. Master Directory 
-    // PERBAIKAN: Menambahkan rute 'groups.directory' agar tidak error di Blade
     Route::get('/groups-directory', [GroupController::class, 'directory'])
          ->name('groups.directory');
 

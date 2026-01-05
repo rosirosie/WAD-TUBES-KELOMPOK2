@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use App\Models\GroupTeam;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class GroupController extends Controller
 {
@@ -13,70 +14,118 @@ class GroupController extends Controller
      */
     public function index()
     {
-        $subjects = Group::all(); //
-        $userName = auth()->user()->name;
+        $subjects = Group::all();
+        $user = Auth::user();
 
-        // Mencari kelompok berdasarkan nama user yang login
-        $myProjectProgress = GroupTeam::where('leader_name', 'LIKE', "%$userName%")
-                            ->orWhereJsonContains('members', $userName)
-                            ->get();
+        // Mencari kelompok dimana user menjadi ketua ATAU menjadi anggota
+        $myProjectProgress = GroupTeam::where('leader_name', $user->name)
+                                    ->orWhereJsonContains('members', $user->name)
+                                    ->get();
 
         return view('groups.index', compact('subjects', 'myProjectProgress'));
     }
 
     /**
-     * PERBAIKAN: Menangani rute 'groups.directory' (Kembali ke Folder)
-     * Ditambahkan untuk memperbaiki RouteNotFoundException
+     * Redirect jika user mengakses /groups-directory langsung
      */
     public function directory()
     {
         return redirect()->route('groups.index');
     }
 
-    public function create()
+    /**
+     * Fungsi Export Excel/CSV (DIPERBAIKI: Menggunakan Native PHP agar anti-error)
+     */
+    public function exportGroups(Request $request)
     {
-        $subjects = Group::all(); //
-        return view('groups.create', compact('subjects'));
+        $fileName = 'Daftar_Kelompok_StudyHub.csv';
+        $teams = GroupTeam::all();
+
+        $headers = array(
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        );
+
+        $columns = array('No', 'Nama Kelompok', 'Ketua Kelompok', 'Anggota Kelompok', 'Tema/Topik');
+
+        $callback = function() use($teams, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($teams as $index => $team) {
+                $row['No'] = $index + 1;
+                $row['Nama Kelompok'] = $team->name;
+                $row['Ketua'] = $team->leader_name;
+                $row['Anggota'] = is_array($team->members) ? implode(', ', $team->members) : $team->members;
+                $row['Topik'] = $team->topic ?? '-';
+
+                fputcsv($file, array($row['No'], $row['Nama Kelompok'], $row['Ketua'], $row['Anggota'], $row['Topik']));
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
+    /**
+     * Menyimpan Data Kelompok Baru
+     */
     public function store(Request $request)
     {
+        // 1. Validasi Input
         $validated = $request->validate([
-            'group_id' => 'required|exists:groups,id',
-            'name' => 'required|string|max:255',
+            'group_id'    => 'required|exists:groups,id',
+            'name'        => 'required|string|max:255',
             'leader_name' => 'required|string|max:255',
-            'members' => 'required|string', 
-            'topic' => 'nullable|string|max:255',
-        ]); //
+            'members'     => 'required|array',   // UBAH JADI ARRAY (Karena input name="members[]")
+            'members.*'   => 'string',           // Pastikan isi array adalah string
+            'topic'       => 'required|string|max:255',
+            'report_link' => 'nullable|url',     // Tambahan sesuai form
+            'ppt_link'    => 'nullable|url',     // Tambahan sesuai form
+        ]);
 
-        $memberArray = array_map('trim', explode(',', $request->members));
-
+        // 2. Simpan ke Database
         GroupTeam::create([
-            'group_id' => $validated['group_id'],
-            'name' => $validated['name'],
+            'group_id'    => $validated['group_id'],
+            'name'        => $validated['name'],
             'leader_name' => $validated['leader_name'],
-            'members' => $memberArray,
-            'topic' => $validated['topic'],
-        ]); //
+            'members'     => $validated['members'], // Langsung simpan array
+            'topic'       => $validated['topic'],
+            'report_link' => $validated['report_link'] ?? null,
+            'ppt_link'    => $validated['ppt_link'] ?? null,
+        ]);
 
-        return redirect()->route('groups.index')->with('success', 'Kelompok berhasil dibuat!');
+        // 3. Redirect kembali ke folder mata kuliah tersebut
+        $groupSubject = Group::find($validated['group_id']);
+        
+        return redirect()->route('groups.directory.detail', ['subject' => $groupSubject->subject])
+                         ->with('success', 'Kelompok berhasil dibuat!');
+    }
+
+    /**
+     * Menampilkan Detail Folder Mata Kuliah (Tabel Kelompok)
+     */
+    public function directoryDetail($subject)
+    {
+        // 1. Cari dulu ID Group berdasarkan nama Subject
+        $groupModel = Group::where('subject', $subject)->firstOrFail();
+
+        // 2. Ambil semua tim yang ada di group_id tersebut
+        $teams = GroupTeam::where('group_id', $groupModel->id)->get();
+        
+        // 3. Ambil group_id untuk dikirim ke Modal
+        $group_id = $groupModel->id;
+
+        return view('groups.directory_detail', compact('teams', 'subject', 'group_id'));
     }
 
     public function showProgress($id)
     {
-        // Mencari data tim berdasarkan ID dan menyertakan data mata kuliahnya
         $team = GroupTeam::with('group')->findOrFail($id);
-        
         return view('groups.progress_detail', compact('team'));
-    }
-
-    public function directoryDetail($subject)
-    {
-        // Mencari semua kelompok yang ada di mata kuliah tertentu
-        $teams = GroupTeam::whereHas('group', function($query) use ($subject) {
-            $query->where('subject', $subject);
-        })->get();
-
-        return view('groups.directory_detail', compact('teams', 'subject'));
     }
 }
