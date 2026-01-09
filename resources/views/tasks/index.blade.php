@@ -1,105 +1,177 @@
 @extends('layouts.app')
 
+@section('title', 'Daftar Tugas')
+@section('subtitle', Auth::user()->role == 'admin' ? 'Kelola deadline & tugas mahasiswa.' : 'Prioritaskan tugas dengan deadline terdekat.')
+
 @section('content')
-    <div class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-800">Board Tugas</h1>
-            <p class="text-gray-500">Geser status tugasmu agar tetap terorganisir.</p>
+
+    {{-- WIDGET ZENQUOTES API --}}
+    @if(isset($quote))
+    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 mb-8 text-white shadow-lg relative overflow-hidden transition-all hover:shadow-indigo-200/50">
+        <div class="absolute top-0 right-0 p-4 opacity-10">
+            <i class="ph-fill ph-quotes text-7xl"></i>
         </div>
-        
-        <a href="{{ route('tasks.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow flex items-center transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Tugas Baru
-        </a>
+        <div class="relative z-10">
+            <p class="text-lg font-medium italic">"{{ $quote['q'] }}"</p>
+            <p class="text-sm mt-2 opacity-80">— {{ $quote['a'] }}</p>
+        </div>
+    </div>
+    @endif
+
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div class="flex gap-2 overflow-x-auto pb-2">
+            @php
+                $statusList = ['all' => 'Semua', 'pending' => 'Pending', 'progress' => 'In Progress', 'done' => 'Selesai'];
+                $currentStatus = request('status', 'all');
+            @endphp
+            @foreach($statusList as $key => $label)
+                <a href="{{ route('tasks.index', ['status' => $key]) }}" 
+                   class="px-4 py-2 rounded-full text-sm font-medium border transition
+                   {{ $currentStatus == $key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 hover:bg-gray-50' }}">
+                    {{ $label }}
+                </a>
+            @endforeach
+        </div>
+
+        <div class="flex items-center gap-3">
+            {{-- TOMBOL EXPORT EXCEL --}}
+            <a href="{{ route('tasks.export') }}" class="bg-white border border-gray-200 text-gray-700 px-5 py-2.5 rounded-lg font-bold shadow-sm text-sm flex items-center gap-2 transition hover:bg-gray-50 border-b-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export Excel
+            </a>
+
+            @if(strtolower(Auth::user()->role) == 'admin')
+                <button onclick="document.getElementById('createTaskModal').classList.remove('hidden')" 
+                        class="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 flex items-center gap-2 transition transform hover:scale-105">
+                    <i class="ph ph-plus-circle text-lg"></i> + Buat Tugas Baru
+                </button>
+            @endif
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-full pb-4">
+    <div class="space-y-4">
+        @forelse($tasks as $task)
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                
+                <div class="flex items-start gap-4 flex-1">
+                    <div class="p-3 rounded-lg flex-shrink-0 {{ $task->status == 'done' ? 'bg-green-100 text-green-600' : 'bg-orange-50 text-orange-600' }}">
+                        <i class="ph {{ $task->status == 'done' ? 'ph-check-circle' : 'ph-warning-circle' }} text-2xl"></i>
+                    </div>
 
-        <div class="flex flex-col">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-gray-700 flex items-center">
-                    <span class="w-3 h-3 bg-gray-400 rounded-full mr-2"></span> To Do
-                </h3>
-                <span class="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full font-bold">{{ count($tasks['todo']) }}</span>
-            </div>
-            
-            <div class="flex-1 bg-gray-50 rounded-xl p-4 border border-gray-200 min-h-[400px] space-y-4">
-                @forelse($tasks['todo'] as $task)
-                    <div class="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-pointer border-l-4 border-gray-400 group">
-                        <h4 class="font-bold text-gray-800 mb-1 text-lg">{{ $task->title }}</h4>
-                        <p class="text-sm text-gray-500 mb-3 line-clamp-2">{{ $task->description }}</p>
-                        
-                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                            <div class="flex items-center text-xs text-gray-400">
-                                📅 {{ \Carbon\Carbon::parse($task->deadline_date)->format('d M') }}
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-1 rounded-full {{ $task->priority == 'High' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600' }}">
-                                {{ $task->priority }}
+                    <div class="w-full">
+                        <h3 class="font-bold text-gray-800 text-lg {{ $task->status == 'done' ? 'line-through text-gray-400' : '' }}">
+                            {{ $task->title }}
+                        </h3>
+
+                        <div class="flex flex-wrap items-center gap-3 mt-1 text-sm">
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
+                                <i class="ph ph-book-open"></i> {{ $task->course }}
                             </span>
-                        </div>
-                    </div>
-                @empty
-                    <p class="text-center text-gray-400 text-sm mt-10">Belum ada tugas.</p>
-                @endforelse
-            </div>
-        </div>
 
-        <div class="flex flex-col">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-blue-600 flex items-center">
-                    <span class="w-3 h-3 bg-blue-500 rounded-full mr-2 animate-pulse"></span> In Progress
-                </h3>
-                <span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full font-bold">{{ count($tasks['in_progress']) }}</span>
-            </div>
-            
-            <div class="flex-1 bg-blue-50 rounded-xl p-4 border border-blue-100 min-h-[400px] space-y-4">
-                @forelse($tasks['in_progress'] as $task)
-                    <div class="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-pointer border-l-4 border-blue-500 group">
-                        <h4 class="font-bold text-gray-800 mb-1 text-lg">{{ $task->title }}</h4>
-                        <p class="text-sm text-gray-500 mb-3 line-clamp-2">{{ $task->description }}</p>
-                        
-                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                            <div class="flex items-center text-xs text-gray-400">
-                                📅 {{ \Carbon\Carbon::parse($task->deadline_date)->format('d M') }}
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-1 rounded-full {{ $task->priority == 'High' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600' }}">
-                                {{ $task->priority }}
+                            <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-semibold">
+                                Tugas Kelas
                             </span>
+
+                            @if(strtolower(Auth::user()->role) == 'admin')
+                                <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="inline-block">
+                                    @csrf @method('PUT')
+                                    <input type="date" name="deadline" 
+                                           value="{{ $task->deadline ? $task->deadline->format('Y-m-d') : '' }}" 
+                                           onchange="this.form.submit()"
+                                           class="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer">
+                                </form>
+                            @else
+                                @if($task->deadline)
+                                    @php $isUrgent = $task->deadline->isPast() || $task->deadline->isToday(); @endphp
+                                    <span class="flex items-center gap-1 {{ ($isUrgent && $task->status != 'done') ? 'text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded' : 'text-gray-500' }}">
+                                        <i class="ph ph-calendar-blank"></i>
+                                        {{ $task->deadline->translatedFormat('d M Y') }}
+                                        @if($isUrgent && $task->status != 'done') <span class="text-xs">(Segera!)</span> @endif
+                                    </span>
+                                @endif
+                            @endif
                         </div>
                     </div>
-                @empty
-                    <p class="text-center text-blue-300 text-sm mt-10">Sedang kosong.</p>
-                @endforelse
-            </div>
-        </div>
+                </div>
 
-        <div class="flex flex-col">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-green-600 flex items-center">
-                    <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span> Done
-                </h3>
-                <span class="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full font-bold">{{ count($tasks['done']) }}</span>
-            </div>
-            
-            <div class="flex-1 bg-green-50 rounded-xl p-4 border border-green-100 min-h-[400px] space-y-4">
-                @forelse($tasks['done'] as $task)
-                    <div class="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-pointer border-l-4 border-green-500 opacity-60 group">
-                        <h4 class="font-bold text-gray-800 mb-1 text-lg decoration-slice">{{ $task->title }}</h4>
-                        <p class="text-sm text-gray-500 mb-3 line-clamp-2">{{ $task->description }}</p>
-                        
-                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                            <div class="flex items-center text-xs text-gray-400">
-                                ✅ Selesai
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <p class="text-center text-green-400 text-sm mt-10">Ayo selesaikan!</p>
-                @endforelse
-            </div>
-        </div>
+                <div class="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                    <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="w-full">
+                        @csrf @method('PUT')
+                        <select name="status" onchange="this.form.submit()" 
+                                class="w-full md:w-40 text-sm rounded-lg border-gray-200 cursor-pointer py-2 px-3 font-medium
+                                {{ $task->status == 'pending' ? 'bg-yellow-50 text-yellow-700' : '' }}
+                                {{ $task->status == 'progress' ? 'bg-blue-50 text-blue-700' : '' }}
+                                {{ $task->status == 'done' ? 'bg-green-50 text-green-700' : '' }}">
+                            <option value="pending" {{ $task->status == 'pending' ? 'selected' : '' }}>⏳ Pending</option>
+                            <option value="progress" {{ $task->status == 'progress' ? 'selected' : '' }}>🚀 Progress</option>
+                            <option value="done" {{ $task->status == 'done' ? 'selected' : '' }}>✅ Selesai</option>
+                        </select>
+                    </form>
 
+                    @if(strtolower(Auth::user()->role) == 'admin')
+                        <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" onsubmit="return confirm('Hapus tugas ini?');">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                                <i class="ph ph-trash text-xl"></i>
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                <p class="text-gray-500">Tidak ada tugas dalam daftar ini.</p>
+            </div>
+        @endforelse
     </div>
+
+    {{-- MODAL TAMBAH TUGAS --}}
+    @if(strtolower(Auth::user()->role) == 'admin')
+    <div id="createTaskModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+            <div class="bg-indigo-600 p-4 flex justify-between items-center text-white">
+                <h3 class="font-bold flex items-center gap-2 text-lg">
+                    <i class="ph ph-note-pencil"></i> Buat Tugas Kelas
+                </h3>
+                <button onclick="document.getElementById('createTaskModal').classList.add('hidden')" class="hover:bg-indigo-500 rounded-full p-1 transition">
+                    <i class="ph ph-x text-xl"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('tasks.store') }}" method="POST" class="p-6 space-y-5">
+                @csrf
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Mata Kuliah</label>
+                    <input type="text" name="course" required placeholder="Contoh: Pemrograman Web" 
+                           class="w-full border-gray-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 p-3 bg-gray-50 text-sm">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Judul Tugas</label>
+                    <input type="text" name="title" required placeholder="Contoh: Tugas Mandiri Pertemuan 5" 
+                           class="w-full border-gray-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 p-3 bg-gray-50 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Batas Waktu (Deadline)</label>
+                    <input type="date" name="deadline" required 
+                           class="w-full border-gray-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 p-3 bg-gray-50 text-sm">
+                </div>
+
+                <div class="flex flex-col gap-2 pt-2 text-center">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="ph ph-paper-plane-tilt"></i> Kirim ke Seluruh Kelas
+                    </button>
+                    <button type="button" onclick="document.getElementById('createTaskModal').classList.add('hidden')" 
+                            class="text-gray-400 text-sm font-medium hover:text-gray-600 py-2">
+                        Batal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
+
 @endsection
