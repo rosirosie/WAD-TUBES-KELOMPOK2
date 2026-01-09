@@ -45,7 +45,18 @@ class ScheduleController extends Controller
 
     public function create()
     {
-        return view('schedules.create');
+        $subjects = [
+            'Pemrograman Web',
+            'Algoritma dan Pemrograman',
+            'Basis Data',
+            'Jaringan Komputer',
+            'Sistem Operasi',
+            'Manajemen Proyek TI',
+            'Rekayasa Perangkat Lunak',
+            'Statistika Industri'
+        ];
+
+        return view('schedules.create', compact('subjects'));
     }
 
     public function store(Request $request)
@@ -97,7 +108,17 @@ class ScheduleController extends Controller
         if (Auth::user()->role !== 'admin' && Auth::id() !== $schedule->user_id) {
             abort(403, 'Akses ditolak.');
         }
-        return view('schedules.edit', compact('schedule'));
+        $subjects = [
+            'Pemrograman Web',
+            'Algoritma dan Pemrograman',
+            'Basis Data',
+            'Jaringan Komputer',
+            'Sistem Operasi',
+            'Manajemen Proyek TI',
+            'Rekayasa Perangkat Lunak',
+            'Statistika Industri'
+        ];
+        return view('schedules.edit', compact('schedule', 'subjects'));
     }
 
     public function update(Request $request, Schedule $schedule)
