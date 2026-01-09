@@ -29,7 +29,7 @@ class TaskController extends Controller
     }
 
     /**
-     * FUNGSI EXPORT (Tambahkan ini untuk memperbaiki error)
+     * FUNGSI EXPORT
      */
     public function exportTasks()
     {
@@ -75,7 +75,9 @@ class TaskController extends Controller
             'deadline' => 'required|date',
         ]);
 
+        // PERBAIKAN: Menambahkan user_id agar tidak error saat insert ke database
         Task::create([
+            'user_id'  => Auth::id(), 
             'course'   => $validated['course'],
             'title'    => $validated['title'],
             'deadline' => $validated['deadline'],
