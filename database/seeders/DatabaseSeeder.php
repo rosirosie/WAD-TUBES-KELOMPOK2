@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Group;
-use App\Models\GroupTeam;
+use App\Models\GroupTeam; // Ini boleh dihapus jika tidak dipakai lagi
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -29,19 +29,13 @@ class DatabaseSeeder extends Seeder
             ['subject' => 'Perancangan Interaksi'],
             ['subject' => 'Statistika Industri'],
             ['subject' => 'Pemodelan Proses Bisnis'],
+            ['subject' => 'Etika Profesi'],
+            ['subject' => 'Sistem Operasi'],
         ];
 
         foreach ($subjects as $sub) {
             Group::create($sub);
         }
 
-        // 3. Buat Contoh Kelompok (Agar muncul di Project Progress)
-        GroupTeam::create([
-            'group_id' => 1, 
-            'name' => 'Kelompok 1',
-            'leader_name' => 'Ferrer', 
-            'members' => ['Ferrer', 'Dhimas', 'Zaidan', 'Mutiara'], // Disimpan sebagai array JSON
-            'topic' => 'Sistem Manajemen StudyHub',
-        ]);
     }
 }

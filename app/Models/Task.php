@@ -17,7 +17,8 @@ class Task extends Model
         'course',
         'title', 
         'status', 
-        'deadline'
+        'deadline',
+        'user_id'
     ];
 
     /**

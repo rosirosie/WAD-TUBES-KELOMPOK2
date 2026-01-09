@@ -10,13 +10,6 @@
         <p class="text-gray-500 text-sm">Kelola kelompok dan tugas besar kelas SI4807</p>
     </div>
 
-    {{-- Create Button --}}
-    <div class="mb-8">
-        <a href="{{ route('groups.create') }}" class="inline-flex bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-semibold shadow-md hover:bg-indigo-700 transition transform hover:scale-105 items-center gap-2">
-            <span>+</span> Create new group
-        </a>
-    </div>
-
     {{-- SECTION 1: MASTER GROUP DIRECTORY --}}
     <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8">
         <h3 class="font-bold text-gray-800 text-lg mb-6 flex items-center gap-2">
