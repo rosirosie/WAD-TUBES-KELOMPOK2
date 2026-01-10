@@ -13,13 +13,11 @@ return new class extends Migration
     {
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
-            // Menghubungkan tugas ke user yang sedang login
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('course');
             $table->string('title');
             $table->text('description')->nullable();
             $table->date('deadline');
-            // Status menggunakan string 'done' atau lainnya sesuai DashboardController
             $table->string('status')->default('pending'); 
             $table->timestamps();
         });
