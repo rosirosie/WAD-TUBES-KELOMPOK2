@@ -11,19 +11,16 @@ class Group extends Model
 
     protected $fillable = ['user_id', 'name', 'subject', 'description'];
 
-    // Relasi ke Ketua
     public function chairman()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Relasi ke Anggota (Selain Ketua)
     public function members()
     {
         return $this->belongsToMany(User::class, 'group_user');
     }
 
-    // Relasi ke Tugas
     public function tasks()
     {
         return $this->hasMany(Task::class);

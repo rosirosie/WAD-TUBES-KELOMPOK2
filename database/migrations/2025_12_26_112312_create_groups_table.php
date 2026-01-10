@@ -10,10 +10,9 @@ return new class extends Migration
     {
         Schema::create('groups', function (Blueprint $table) {
             $table->id();
-            // Gunakan 'subject' agar sinkron dengan Controller dan Seeder
+
             $table->string('subject'); 
-            
-            // Kolom tambahan untuk detail mata kuliah (opsional)
+      
             $table->text('description')->nullable();
             
             $table->timestamps();

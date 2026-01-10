@@ -38,7 +38,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {{-- Loop kelompok di mana user terlibat --}}
             @forelse($myProjectProgress as $team)
-                <a href="{{ route('groups.progress.detail', $team->id) }}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-4 px-6 rounded-xl flex items-center shadow-sm transition group">
+                <a href="{{ route('groups.progress', $team->id) }}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-4 px-6 rounded-xl flex items-center shadow-sm transition group">
                     <span class="mr-3 transition-transform group-hover:scale-120">👤</span>
                     {{ $team->group->subject ?? 'Mata Kuliah Kelompok' }}
                 </a>
