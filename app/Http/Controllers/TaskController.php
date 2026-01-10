@@ -5,21 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http; // WAJIB DITAMBAHKAN
+use Illuminate\Support\Facades\Http;
 
 class TaskController extends Controller
 {
     public function index(Request $request)
     {
         $user = Auth::user();
-
-        // --- INTEGRASI ZENQUOTES API ---
         try {
-            // Mengambil kutipan acak dari API
             $response = Http::get('https://zenquotes.io/api/random');
             $quote = $response->json()[0];
         } catch (\Exception $e) {
-            // Data cadangan jika API gagal dimuat
             $quote = [
                 'q' => 'Pendidikan adalah senjata paling mematikan di dunia, karena dengan pendidikan, Anda dapat mengubah dunia.',
                 'a' => 'Nelson Mandela'
@@ -28,19 +24,16 @@ class TaskController extends Controller
 
         $query = Task::query();
 
-        // Filter Status
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-        // Sorting: Status (Pending > Progress > Done) kemudian Deadline terdekat
         $tasks = $query->orderByRaw("FIELD(status, 'pending', 'progress', 'done')")
                        ->orderBy('deadline', 'asc')
                        ->get();
 
-        // Mengirimkan variabel $quote ke view
         return view('tasks.index', compact('tasks', 'quote'));
-    }
+}
 
     public function store(Request $request)
     {
@@ -53,7 +46,7 @@ class TaskController extends Controller
             'title'    => 'required|string|max:255',
             'deadline' => 'required|date',
         ]);
-
+    
         Task::create([
             'course'   => $validated['course'],
             'title'    => $validated['title'],
@@ -102,7 +95,6 @@ class TaskController extends Controller
         if (strtolower(Auth::user()->role) !== 'admin') { 
             abort(403); 
         }
-        
         $task->delete();
         return back()->with('success', 'Tugas kelas telah dihapus.');
     }
