@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
 use App\Models\Group;
 use App\Models\GroupTeam;
 use App\Models\GroupProgres; 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class GroupController extends Controller
 {
-    
+
     public function index()
     {
         $subjects = Group::all();
@@ -23,12 +23,10 @@ class GroupController extends Controller
         return view('groups.index', compact('subjects', 'myProjectProgress'));
     }
 
-
     public function directory()
     {
         return redirect()->route('groups.index');
     }
-
 
     public function exportGroups(Request $request)
     {
@@ -67,7 +65,6 @@ class GroupController extends Controller
 
     public function store(Request $request)
     {
-      
         $validated = $request->validate([
             'group_id'    => 'required|exists:groups,id',
             'name'        => 'required|string|max:255',
@@ -98,7 +95,7 @@ class GroupController extends Controller
         $groupModel = Group::where('subject', $subject)->firstOrFail();
 
         $teams = GroupTeam::where('group_id', $groupModel->id)->get();
- 
+     
         $group_id = $groupModel->id;
 
         return view('groups.directory_detail', compact('teams', 'subject', 'group_id'));
@@ -107,7 +104,7 @@ class GroupController extends Controller
     public function showProgress($id)
     {
         $team = GroupTeam::with('group')->findOrFail($id);
-        
+
         $progress_data = GroupProgres::where('group_team_id', $team->id)
                                      ->orderBy('week', 'asc') 
                                      ->get();
@@ -132,7 +129,6 @@ class GroupController extends Controller
             'is_completed'  => $request->has('is_completed'), 
         ]);
 
-    
         return back()->with('success', 'Progress berhasil ditambahkan!');
     }
 
@@ -151,7 +147,7 @@ class GroupController extends Controller
 
         return back()->with('success', 'Item progress berhasil dihapus!');
     }
-
+ 
     public function updateProgress(Request $request, $id)
     {
         $validated = $request->validate([

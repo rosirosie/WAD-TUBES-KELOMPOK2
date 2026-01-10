@@ -6,22 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('announcements', function (Blueprint $table) {
             $table->id();
+            $table->string('title'); // Judul Pengumuman
+            $table->text('content'); // Isi Pesan
+            $table->enum('type', ['info', 'urgent', 'warning'])->default('info'); // Warna (Merah/Biru)
+            $table->boolean('is_active')->default(true); // Status Tampil/Sembunyi
             $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('announcements');
     }
 };

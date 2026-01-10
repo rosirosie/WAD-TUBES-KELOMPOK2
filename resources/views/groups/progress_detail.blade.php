@@ -5,7 +5,7 @@
 @section('content')
 <div class="p-6">
     
-    {{-- TOMBOL KEMBALI --}}
+    {{-- TOMBOL KEMBALI (SUDAH DIPERBAIKI KE MENU UTAMA) --}}
     <div class="mb-4">
         {{-- Mengarah ke route 'groups.index' (Halaman Dashboard Kelompok) --}}
         <a href="{{ route('groups.index') }}" class="inline-flex items-center gap-2 text-sm text-indigo-600 font-medium hover:text-indigo-800 transition-colors">
@@ -112,7 +112,6 @@
                                 <th class="p-4 border-b border-gray-100 text-center">Aksi</th>
                             </tr>
                         </thead>
-
                         {{-- TBODY BARU DENGAN TOMBOL EDIT (DATA ATTRIBUTES) --}}
                         <tbody class="divide-y divide-gray-100">
                             @forelse($progress_data as $item)
@@ -326,7 +325,7 @@
 {{-- SCRIPT JAVASCRIPT UNTUK BUKA MODAL EDIT --}}
 <script>
     function openEditModal(button) {
-
+      
         const id = button.getAttribute('data-id');
         const week = button.getAttribute('data-week');
         const title = button.getAttribute('data-title');

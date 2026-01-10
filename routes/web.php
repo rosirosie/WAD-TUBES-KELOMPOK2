@@ -1,12 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
-// --- 1. Import Controller Auth (Login/Register) ---
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
-
-// --- 2. Import Controller Fitur Utama ---
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ScheduleController;
@@ -22,11 +18,8 @@ Route::get('/', function () {
 
 // B. GRUP GUEST
 Route::middleware('guest')->group(function () {
-    // Register
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
-
-    // Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
 });
@@ -34,10 +27,7 @@ Route::middleware('guest')->group(function () {
 // C. GRUP AUTH
 Route::middleware('auth')->group(function () {
     
-    // 1. Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-
-    // 2. Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/check-updates', [DashboardController::class, 'checkUpdates'])->name('dashboard.updates');
 
@@ -51,10 +41,12 @@ Route::middleware('auth')->group(function () {
     Route::resource('tasks', TaskController::class);
     Route::resource('schedules', ScheduleController::class);
     Route::resource('materials', MaterialController::class);
-    Route::resource('groups', GroupController::class);
     Route::resource('announcements', AnnouncementController::class);
-
-        // a. Master Directory 
+    Route::resource('groups', GroupController::class);
+    
+    // --- FITUR GROUPS  ---
+    
+    // a. Master Directory 
     Route::get('/groups-directory', [GroupController::class, 'directory'])
          ->name('groups.directory');
 
@@ -68,15 +60,18 @@ Route::put('/groups/update/{id}', [GroupController::class, 'updateGroup'])->name
 
 
     // c. Project Progress Detail
- 
+
+// 1. Route untuk melihat Progress
 Route::get('/groups/progress/{id}', [GroupController::class, 'showProgress'])->name('groups.progress');
 
+// 2. Route untuk menyimpan Progress 
 Route::post('/groups/progress/store', [GroupController::class, 'storeProgress'])->name('groups.progress.store');
 
+// 3. Route untuk HAPUS (Delete)
 Route::delete('/groups/delete/{id}', [GroupController::class, 'destroyGroup'])->name('groups.destroy');
-
 Route::delete('/groups/progress/delete/{id}', [GroupController::class, 'destroyProgress'])->name('groups.progress.destroy');
 
+// Route untuk Update/Edit Progress
 Route::put('/groups/progress/update/{id}', [GroupController::class, 'updateProgress'])->name('groups.progress.update');
 
     // d. Fitur Kelompok Lainnya
