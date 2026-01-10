@@ -22,7 +22,10 @@ class DashboardController extends Controller
     {
         $data = $this->getAllDashboardData();
 
-        $announcementHtml = view('partials.announcement_widget', ['announcement' => $data['announcement']])->render();
+        // UBAH DISINI: Render view slider/carousel
+        // Kita mengirim data 'announcements' (jamak) ke view partials.announcement_carousel
+        $announcementHtml = view('partials.announcement_carousel', ['announcements' => $data['announcements']])->render();
+        
         $leftHtml = view('partials.dashboard_left', $data)->render();
         $rightHtml = view('partials.dashboard_right', $data)->render();
 
@@ -51,11 +54,11 @@ class DashboardController extends Controller
             'deskripsi' => 'Cerah Berawan'
         ];
 
-        // 3. AMBIL PENGUMUMAN TERBARU
-        $announcement = Announcement::latest()->first();
+        // 3. AMBIL PENGUMUMAN TERBARU (UBAH UNTUK SLIDER)
+        // Ambil 5 data terbaru, bukan cuma 1
+        $announcements = Announcement::latest()->take(5)->get();
 
         // A. Statistik Ringkas
-        // PERBAIKAN: Hapus filter user_id karena tugas sekarang bersifat sekelas
         $stats = [
             'pending_tasks' => Task::where('status', '!=', 'done')->count(),
             'completed_tasks' => Task::where('status', 'done')->count(),
@@ -63,7 +66,6 @@ class DashboardController extends Controller
         ];
 
         // B. Jadwal Hari Ini
-        // PERBAIKAN: Jadwal diambil secara umum untuk satu kelas
         $todaysSchedules = Schedule::where('day', $hariIniIndo)
                                 ->orderBy('start_time', 'asc')
                                 ->get();
@@ -74,7 +76,6 @@ class DashboardController extends Controller
                                     ->get();
 
         // D. Tugas (Deadline Hari Ini)
-        // PERBAIKAN: Hapus filter user_id
         $todaysTasks = Task::whereDate('deadline', $today->format('Y-m-d'))
                         ->where('status', '!=', 'done') 
                         ->get();
@@ -93,7 +94,7 @@ class DashboardController extends Controller
                                 ->first();
 
         return [
-            'announcement' => $announcement,
+            'announcements' => $announcements, // UBAH JADI PLURAL (JAMAK)
             'cuaca' => $cuaca,
             'stats' => $stats,
             'todaysSchedules' => $todaysSchedules,

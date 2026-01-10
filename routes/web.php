@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('materials', MaterialController::class);
     Route::resource('announcements', AnnouncementController::class);
     
+    
     // --- FITUR GROUPS (SINKRONISASI TOTAL) ---
     
     Route::resource('groups', GroupController::class);
