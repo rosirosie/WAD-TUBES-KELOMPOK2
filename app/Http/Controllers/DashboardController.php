@@ -23,7 +23,9 @@ class DashboardController extends Controller
     {
         $data = $this->getAllDashboardData();
 
-        $announcementHtml = view('partials.announcement_widget', ['announcement' => $data['announcement']])->render();
+        // Render view Carousel/Slider
+        $announcementHtml = view('partials.announcement_carousel', ['announcements' => $data['announcements']])->render();
+        
         $leftHtml = view('partials.dashboard_left', $data)->render();
         $rightHtml = view('partials.dashboard_right', $data)->render();
 
@@ -34,56 +36,34 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * FUNGSI EXPORT (TAMBAHAN BARU)
-     * Menghasilkan ringkasan Dashboard dalam format CSV
-     */
     public function exportSummary()
     {
         $fileName = 'Ringkasan_Dashboard_' . date('Y-m-d') . '.csv';
-        
-        // Ambil data untuk ringkasan
         $stats = [
             'Pending Tasks' => Task::where('status', '!=', 'done')->count(),
             'Completed Tasks' => Task::where('status', 'done')->count(),
             'Total Materials' => Material::count(),
         ];
-        
         $pendingTasks = Task::where('status', '!=', 'done')->orderBy('deadline', 'asc')->get();
 
         $headers = [
-            "Content-type"        => "text/csv",
+            "Content-type" => "text/csv",
             "Content-Disposition" => "attachment; filename=$fileName",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
         ];
 
         $callback = function() use ($stats, $pendingTasks) {
             $file = fopen('php://output', 'w');
-
-            // 1. Bagian Statistik
             fputcsv($file, ['--- STATISTIK BELAJAR ---']);
-            foreach ($stats as $label => $value) {
-                fputcsv($file, [$label, $value]);
-            }
-
-            fputcsv($file, []); // Baris Kosong
-
-            // 2. Bagian Daftar Tugas Pending
-            fputcsv($file, ['--- DAFTAR TUGAS (PENDING/PROGRESS) ---']);
+            foreach ($stats as $label => $value) fputcsv($file, [$label, $value]);
+            fputcsv($file, []); 
+            fputcsv($file, ['--- DAFTAR TUGAS ---']);
             fputcsv($file, ['No', 'Mata Kuliah', 'Judul Tugas', 'Deadline', 'Status']);
-
             foreach ($pendingTasks as $index => $task) {
-                fputcsv($file, [
-                    $index + 1,
-                    $task->course,
-                    $task->title,
-                    $task->deadline ? $task->deadline->format('d-m-Y') : '-',
-                    ucfirst($task->status)
-                ]);
+                fputcsv($file, [$index + 1, $task->course, $task->title, $task->deadline ? $task->deadline->format('d-m-Y') : '-', ucfirst($task->status)]);
             }
-
             fclose($file);
         };
 
@@ -95,83 +75,64 @@ class DashboardController extends Controller
         $user = Auth::user();
         $today = Carbon::now();
 
-        // 1. SET LOCALE & TANGGAL
         Carbon::setLocale('id');
         $hariIniIndo = $today->translatedFormat('l'); 
         $hariBesokIndo = $today->copy()->addDay()->translatedFormat('l');
 
-        // 2. LOGIKA CUACA (API EKSTERNAL DENGAN KEAMANAN)
-        $apiKey = "36ef06dab6afab28a1a456df2bf886f7"; 
-        $kota = "Bandung";
+        // ========= 2. LOGIKA CUACA (FIX BANDUNG via OPEN-METEO) =========
+        $lat = "-6.9175";
+        $long = "107.6191";
+        $namaKota = "Kota Bandung";
 
         try {
-            $response = Http::timeout(2)->get("https://api.openweathermap.org/data/2.5/weather", [
-                'q' => $kota,
-                'appid' => $apiKey,
-                'units' => 'metric',
-                'lang' => 'id'
-            ]);
+            $url = "https://api.open-meteo.com/v1/forecast?latitude={$lat}&longitude={$long}&current_weather=true&timezone=Asia%2FBangkok";
+            
+            // Timeout 3 detik agar loading dashboard tidak lama
+            $response = Http::timeout(3)->get($url);
 
             if ($response->successful()) {
-                $rawCuaca = $response->json();
+                $data = $response->json();
+                $current = $data['current_weather'];
+
                 $cuaca = [
                     'tanggal' => $today->translatedFormat('l, d F Y'),
-                    'kota' => $rawCuaca['name'],
-                    'suhu' => round($rawCuaca['main']['temp']),
-                    'deskripsi' => $rawCuaca['weather'][0]['description']
+                    'kota' => $namaKota, 
+                    'suhu' => round($current['temperature']), 
+                    'deskripsi' => $this->getWmoDescription($current['weathercode'])
                 ];
             } else {
-                throw new \Exception("Gagal mengambil data");
+                throw new \Exception("Gagal ambil data");
             }
+
         } catch (\Exception $e) {
+            // Fallback
             $cuaca = [
                 'tanggal' => $today->translatedFormat('l, d F Y'),
                 'kota' => 'Bandung',
                 'suhu' => '--',
-                'deskripsi' => 'Data tidak tersedia (Cek Internet/API Key)'
+                'deskripsi' => 'Data tidak tersedia'
             ];
         }
+        // ==========================================================
 
-        // 3. AMBIL PENGUMUMAN TERBARU
-        $announcement = Announcement::latest()->first();
+        // 3. AMBIL PENGUMUMAN TERBARU (SLIDER MODE)
+        // Ambil 5 data terbaru untuk ditampilkan di carousel
+        $announcements = Announcement::latest()->take(5)->get();
 
-        // A. Statistik Ringkas
+        // 4. DATA STATISTIK & JADWAL
         $stats = [
             'pending_tasks' => Task::where('status', '!=', 'done')->count(),
             'completed_tasks' => Task::where('status', 'done')->count(),
             'total_materials' => Material::count(),
         ];
-
-        // B. Jadwal Hari Ini
-        $todaysSchedules = Schedule::where('day', $hariIniIndo)
-                                ->orderBy('start_time', 'asc')
-                                ->get();
-
-        // C. Jadwal Besok
-        $tomorrowSchedules = Schedule::where('day', $hariBesokIndo)
-                                    ->orderBy('start_time', 'asc')
-                                    ->get();
-
-        // D. Tugas (Deadline Hari Ini)
-        $todaysTasks = Task::whereDate('deadline', $today->format('Y-m-d'))
-                        ->where('status', '!=', 'done') 
-                        ->get();
-
-        // E. Tugas Mendatang (3 item)
-        $upcomingTasks = Task::whereDate('deadline', '>', $today->format('Y-m-d'))
-                            ->where('status', '!=', 'done')
-                            ->orderBy('deadline', 'asc')
-                            ->take(3)
-                            ->get();
-
-        // F. Material Terbaru
-        $todaysMaterial = Material::with('user')
-                                ->whereDate('created_at', $today->format('Y-m-d'))
-                                ->latest()
-                                ->first();
+        $todaysSchedules = Schedule::where('day', $hariIniIndo)->orderBy('start_time', 'asc')->get();
+        $tomorrowSchedules = Schedule::where('day', $hariBesokIndo)->orderBy('start_time', 'asc')->get();
+        $todaysTasks = Task::whereDate('deadline', $today->format('Y-m-d'))->where('status', '!=', 'done')->get();
+        $upcomingTasks = Task::whereDate('deadline', '>', $today->format('Y-m-d'))->where('status', '!=', 'done')->orderBy('deadline', 'asc')->take(3)->get();
+        $todaysMaterial = Material::with('user')->whereDate('created_at', $today->format('Y-m-d'))->latest()->first();
 
         return [
-            'announcement' => $announcement,
+            'announcements' => $announcements, 
             'cuaca' => $cuaca,
             'stats' => $stats,
             'todaysSchedules' => $todaysSchedules,
@@ -183,5 +144,17 @@ class DashboardController extends Controller
             'user' => $user,
             'today' => $today,
         ];
+    }
+
+    private function getWmoDescription($code)
+    {
+        $codes = [
+            0 => 'Cerah', 1 => 'Cerah Berawan', 2 => 'Berawan', 3 => 'Mendung',
+            45 => 'Kabut', 48 => 'Kabut Tebal', 51 => 'Gerimis Ringan', 53 => 'Gerimis Sedang',
+            55 => 'Gerimis Lebat', 61 => 'Hujan Ringan', 63 => 'Hujan Sedang', 65 => 'Hujan Lebat',
+            80 => 'Hujan Ringan', 81 => 'Hujan Sedang', 82 => 'Hujan Lebat', 95 => 'Hujan Petir',
+            96 => 'Hujan Petir Ringan', 99 => 'Hujan Petir Lebat',
+        ];
+        return $codes[$code] ?? 'Cerah Berawan';
     }
 }

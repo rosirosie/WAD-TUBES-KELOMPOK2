@@ -5,7 +5,11 @@
 
 @section('content')
 
+<<<<<<< HEAD
     {{-- WIDGET ZENQUOTES API --}}
+=======
+
+>>>>>>> 05c2f0e988029abc36fa4855e19abd8e1300a192
     @if(isset($quote))
     <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 mb-8 text-white shadow-lg relative overflow-hidden transition-all hover:shadow-indigo-200/50">
         <div class="absolute top-0 right-0 p-4 opacity-10">
@@ -34,7 +38,10 @@
         </div>
 
         <div class="flex items-center gap-3">
+<<<<<<< HEAD
             {{-- TOMBOL EXPORT EXCEL --}}
+=======
+>>>>>>> 05c2f0e988029abc36fa4855e19abd8e1300a192
             <a href="{{ route('tasks.export') }}" class="bg-white border border-gray-200 text-gray-700 px-5 py-2.5 rounded-lg font-bold shadow-sm text-sm flex items-center gap-2 transition hover:bg-gray-50 border-b-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -97,6 +104,7 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+<<<<<<< HEAD
                     <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="w-full">
                         @csrf @method('PUT')
                         <select name="status" onchange="this.form.submit()" 
@@ -115,6 +123,27 @@
                             @csrf @method('DELETE')
                             <button type="submit" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
                                 <i class="ph ph-trash text-xl"></i>
+=======
+                    <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="flex-grow md:flex-initial">
+                        @csrf @method('PUT')
+                        <select name="status" onchange="this.form.submit()" 
+                            class="w-full md:w-40 text-sm rounded-lg border-gray-200 cursor-pointer py-2 px-3 font-medium
+                            {{ $task->status == 'pending' ? 'bg-yellow-50 text-yellow-700' : '' }}
+                            {{ $task->status == 'progress' ? 'bg-blue-50 text-blue-700' : '' }}
+                            {{ $task->status == 'done' ? 'bg-green-50 text-green-700' : '' }}">
+                        <option value="pending" {{ $task->status == 'pending' ? 'selected' : '' }}>⏳ Pending</option>
+                        <option value="progress" {{ $task->status == 'progress' ? 'selected' : '' }}>🚀 Progress</option>
+                        <option value="done" {{ $task->status == 'done' ? 'selected' : '' }}>✅ Selesai</option>
+                    </select>
+                </form>
+
+                    @if(strtolower(Auth::user()->role) == 'admin')
+                        <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" onsubmit="return confirm('Hapus tugas ini?');" class="flex-shrink-0">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="p-2 bg-red-600 text-white rounded-lg">
+                                <i class="ph ph-trash text-xl"></i>
+                                <span class="sr-only">Hapus</span>
+>>>>>>> 05c2f0e988029abc36fa4855e19abd8e1300a192
                             </button>
                         </form>
                     @endif
@@ -127,7 +156,11 @@
         @endforelse
     </div>
 
+<<<<<<< HEAD
     {{-- MODAL TAMBAH TUGAS --}}
+=======
+
+>>>>>>> 05c2f0e988029abc36fa4855e19abd8e1300a192
     @if(strtolower(Auth::user()->role) == 'admin')
     <div id="createTaskModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">

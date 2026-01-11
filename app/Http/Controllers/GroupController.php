@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 
 class GroupController extends Controller
 {
-
     public function index()
     {
         $subjects = Group::all();
@@ -93,9 +92,7 @@ class GroupController extends Controller
     public function directoryDetail($subject)
     {
         $groupModel = Group::where('subject', $subject)->firstOrFail();
-
         $teams = GroupTeam::where('group_id', $groupModel->id)->get();
-     
         $group_id = $groupModel->id;
 
         return view('groups.directory_detail', compact('teams', 'subject', 'group_id'));
@@ -104,7 +101,6 @@ class GroupController extends Controller
     public function showProgress($id)
     {
         $team = GroupTeam::with('group')->findOrFail($id);
-
         $progress_data = GroupProgres::where('group_team_id', $team->id)
                                      ->orderBy('week', 'asc') 
                                      ->get();
@@ -132,7 +128,34 @@ class GroupController extends Controller
         return back()->with('success', 'Progress berhasil ditambahkan!');
     }
 
-    public function destroyGroup($id)
+    /**
+     * PERBAIKAN: Mengganti nama updateGroup menjadi update 
+     * Agar sesuai dengan Route::resource('groups', ...)
+     */
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'name'    => 'required|string|max:255',
+            'topic'   => 'required|string|max:255',
+            'members' => 'required|array', 
+        ]);
+
+        $team = GroupTeam::findOrFail($id);
+
+        $team->update([
+            'name'    => $validated['name'],
+            'topic'   => $validated['topic'],
+            'members' => $validated['members'], 
+        ]);
+
+        return back()->with('success', 'Data kelompok berhasil diperbarui!');
+    }
+
+    /**
+     * PERBAIKAN: Mengganti nama destroyGroup menjadi destroy
+     * Agar sesuai dengan Route::resource('groups', ...)
+     */
+    public function destroy($id)
     {
         $team = GroupTeam::findOrFail($id);
         $team->delete(); 
@@ -166,24 +189,5 @@ class GroupController extends Controller
         ]);
 
         return back()->with('success', 'Data progress berhasil diperbarui!');
-    }
-
-    public function updateGroup(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'name'    => 'required|string|max:255',
-            'topic'   => 'required|string|max:255',
-            'members' => 'required|array', 
-        ]);
-
-        $team = GroupTeam::findOrFail($id);
-
-        $team->update([
-            'name'    => $validated['name'],
-            'topic'   => $validated['topic'],
-            'members' => $validated['members'], 
-        ]);
-
-        return back()->with('success', 'Data kelompok berhasil diperbarui!');
     }
 }

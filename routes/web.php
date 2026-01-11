@@ -1,84 +1,62 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\TaskController;
-use App\Http\Controllers\ScheduleController;
-use App\Http\Controllers\MaterialController;
-use App\Http\Controllers\GroupController;
-use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\Auth\{RegisterController, LoginController};
+use App\Http\Controllers\{
+    DashboardController, TaskController, ScheduleController, 
+    MaterialController, GroupController, AnnouncementController
+};
 
-
-// A. Redirect Awal
-Route::get('/', function () {
-    return redirect()->route('login');
-});
-
-// B. GRUP GUEST
+// --- A. GUEST ACCESS ---
 Route::middleware('guest')->group(function () {
+    Route::get('/', fn() => redirect()->route('login'));
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
 });
 
-// C. GRUP AUTH
+// --- B. AUTHENTICATED ACCESS ---
 Route::middleware('auth')->group(function () {
     
+    // 1. Dashboard & Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/check-updates', [DashboardController::class, 'checkUpdates'])->name('dashboard.updates');
-
-    // --- FITUR EXPORT ---
     Route::get('/dashboard/export', [DashboardController::class, 'exportSummary'])->name('dashboard.export');
-    Route::get('/tasks-export', [TaskController::class, 'exportTasks'])->name('tasks.export');
-    Route::get('/materials-export', [MaterialController::class, 'exportMaterials'])->name('materials.export');
-    Route::get('/groups/export', [GroupController::class, 'exportGroups'])->name('groups.export');
 
-    // --- FITUR UTAMA ---
+    // 2. Fitur Utama (Resource)
     Route::resource('tasks', TaskController::class);
     Route::resource('schedules', ScheduleController::class);
-    Route::resource('materials', MaterialController::class);
     Route::resource('announcements', AnnouncementController::class);
     Route::resource('groups', GroupController::class);
-    
-    // --- FITUR GROUPS  ---
-    
-    // a. Master Directory 
-    Route::get('/groups-directory', [GroupController::class, 'directory'])
-         ->name('groups.directory');
 
-    // b. Master Directory Detail (Folder Mata Kuliah)
-    Route::get('/groups-directory/{subject}', [GroupController::class, 'directoryDetail'])
-         ->name('groups.directory.detail');
-         Route::delete('/groups/delete/{id}', [GroupController::class, 'destroyGroup'])->name('groups.destroy');
-    
-    // Route untuk Update Data Kelompok
-Route::put('/groups/update/{id}', [GroupController::class, 'updateGroup'])->name('groups.update');
+    // 3. Materials (Khusus Download & View harus di atas Resource jika memakai parameter yang mirip)
+    Route::get('/materials/download/{id}', [MaterialController::class, 'download'])->name('materials.download');
+    Route::get('/materials/view/{id}', [MaterialController::class, 'viewFile'])->name('materials.view');
+    Route::get('/materials-export', [MaterialController::class, 'exportMaterials'])->name('materials.export');
+    Route::resource('materials', MaterialController::class);
 
+    // 4. Fitur Groups (Custom Routes)
+    Route::prefix('groups-feature')->group(function () {
+        // Directory & Export
+        Route::get('/directory', [GroupController::class, 'directory'])->name('groups.directory');
+        Route::get('/directory/{subject}', [GroupController::class, 'directoryDetail'])->name('groups.directory.detail');
+        Route::get('/export', [GroupController::class, 'exportGroups'])->name('groups.export');
 
-    // c. Project Progress Detail
+        // Progress Management
+        Route::get('/progress/{id}', [GroupController::class, 'showProgress'])->name('groups.progress');
+        Route::post('/progress/store', [GroupController::class, 'storeProgress'])->name('groups.progress.store');
+        Route::put('/progress/update/{id}', [GroupController::class, 'updateProgress'])->name('groups.progress.update');
+        Route::delete('/progress/delete/{id}', [GroupController::class, 'destroyProgress'])->name('groups.progress.destroy');
 
-// 1. Route untuk melihat Progress
-Route::get('/groups/progress/{id}', [GroupController::class, 'showProgress'])->name('groups.progress');
+        // Links & Tasks Internal Group
+        Route::put('/{group}/links', [GroupController::class, 'updateLinks'])->name('groups.updateLinks');
+        Route::post('/{group}/tasks', [GroupController::class, 'storeTask'])->name('groups.tasks.store');
+        Route::patch('/tasks/{task}/status', [GroupController::class, 'updateTaskStatus'])->name('groups.tasks.update');
+        Route::delete('/tasks/{task}', [GroupController::class, 'destroyTask'])->name('groups.tasks.destroy');
+    });
 
-// 2. Route untuk menyimpan Progress 
-Route::post('/groups/progress/store', [GroupController::class, 'storeProgress'])->name('groups.progress.store');
-
-// 3. Route untuk HAPUS (Delete)
-Route::delete('/groups/delete/{id}', [GroupController::class, 'destroyGroup'])->name('groups.destroy');
-Route::delete('/groups/progress/delete/{id}', [GroupController::class, 'destroyProgress'])->name('groups.progress.destroy');
-
-// Route untuk Update/Edit Progress
-Route::put('/groups/progress/update/{id}', [GroupController::class, 'updateProgress'])->name('groups.progress.update');
-
-    // d. Fitur Kelompok Lainnya
-    Route::put('/groups/{group}/links', [GroupController::class, 'updateLinks'])->name('groups.updateLinks');
-    Route::post('/groups/{group}/tasks', [GroupController::class, 'storeTask'])->name('groups.tasks.store');
-    Route::patch('/groups/tasks/{task}/status', [GroupController::class, 'updateTaskStatus'])->name('groups.tasks.update');
-    Route::delete('/groups/tasks/{task}', [GroupController::class, 'destroyTask'])->name('groups.tasks.destroy');
-
-    
+    // Fitur Export tambahan
+    Route::get('/tasks-export', [TaskController::class, 'exportTasks'])->name('tasks.export');
 });

@@ -11,36 +11,38 @@ use Carbon\Carbon;
 
 class ScheduleController extends Controller
 {
-    public function index()
+    public function index(Request $request) // Tambahkan Request $request
     {
-        // 1. Ambil jadwal user yang login
-        $schedules = Schedule::orderBy('start_time')
-                    ->get()
-                    ->groupBy('day');
+        // 1. Logika Navigasi Tanggal
+        // Jika ada parameter 'date' di URL, pakai itu. Jika tidak, pakai hari ini.
+        $currentDate = $request->has('date') 
+            ? Carbon::parse($request->date) 
+            : Carbon::now();
 
-        $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        
-        // 2. Tentukan rentang tahun untuk API (Penting karena minggu ini melewati pergantian tahun)
-        $startOfWeek = Carbon::now()->startOfWeek();
-        $endOfWeek = Carbon::now()->endOfWeek();
-        $years = array_unique([$startOfWeek->year, $endOfWeek->year]);
+        $startOfWeek = $currentDate->copy()->startOfWeek();
+        $endOfWeek   = $currentDate->copy()->endOfWeek();
 
-        $holidays = [];
+        // Siapkan link untuk tombol Previous & Next
+        $prevWeek = $startOfWeek->copy()->subWeek()->format('Y-m-d');
+        $nextWeek = $startOfWeek->copy()->addWeek()->format('Y-m-d');
 
-        // --- AMBIL DATA LIBUR DARI API ---
-        foreach ($years as $year) {
-            try {
-                $response = Http::get("https://api-harilibur.vercel.app/api?year={$year}");
-                if ($response->successful()) {
-                    // Gabungkan data libur jika minggu melewati dua tahun berbeda
-                    $holidays = array_merge($holidays, $response->json());
-                }
-            } catch (\Exception $e) {
-                Log::error("Gagal memuat API libur tahun {$year}: " . $e->getMessage());
-            }
+        // 2. Ambil Data Jadwal
+        $schedules = Schedule::orderBy('start_time')->get()->groupBy('day');
+        $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+        // 3. API Hari Libur (Berdasarkan tahun dari minggu yang dilihat)
+        try {
+            $year = $startOfWeek->year; // Ambil tahun sesuai jadwal yang dibuka
+            $response = Http::get("https://dayoffapi.vercel.app/api?year={$year}");
+            $holidays = $response->successful() ? $response->json() : [];
+        } catch (\Exception $e) {
+            $holidays = [];
         }
 
-        return view('schedules.index', compact('schedules', 'days', 'holidays'));
+        return view('schedules.index', compact(
+            'schedules', 'days', 'holidays', 
+            'startOfWeek', 'endOfWeek', 'prevWeek', 'nextWeek'
+        ));
     }
 
     public function create()

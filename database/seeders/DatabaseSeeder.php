@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Group;
-use App\Models\GroupTeam; 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,7 +13,7 @@ class DatabaseSeeder extends Seeder
     {
         User::create([
             'nim' => '102022400008',
-            'name' => 'Ferrer',
+            'name' => 'Ferrer Nafier',
             'email' => 'admin@studyhub.com',
             'password' => Hash::make('ferrer123'),
             'email_verified_at' => now(),

@@ -15,7 +15,11 @@
     {{-- Action Bar --}}
     <div class="mb-8 flex justify-between items-center">
         <a href="{{ route('groups.directory') }}" class="text-sm text-indigo-600 hover:underline flex items-center gap-1">
+<<<<<<< HEAD
             <span>&larr;</span> Kembali ke Folder Directory
+=======
+            <span>&larr;</span> Kembali ke Halaman Groups
+>>>>>>> 05c2f0e988029abc36fa4855e19abd8e1300a192
         </a>
         
         <div class="flex gap-3">
