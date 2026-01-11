@@ -15,17 +15,26 @@
             <div class="p-8">
                 <form action="{{ route('schedules.update', $schedule->id) }}" method="POST">
                     @csrf 
-                    @method('PUT') <div class="mb-6">
+                    @method('PUT') 
+                    
+                    <div class="mb-6">
                         <label class="block text-sm font-bold text-gray-700 mb-2">
                             Mata Kuliah <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" 
-                               name="subject" 
-                               value="{{ $schedule->subject }}"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition outline-none" 
-                               required>
+                        <div class="relative">
+                            <select name="subject" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition outline-none appearance-none bg-white" required>
+                                <option value="" disabled>-- Pilih Mata Kuliah --</option>
+                                @foreach($subjects as $subjectOption)
+                                    <option value="{{ $subjectOption }}" {{ $schedule->subject == $subjectOption ? 'selected' : '' }}>
+                                        {{ $subjectOption }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
                     </div>
-
                     <div class="mb-6">
                         <label class="block text-sm font-bold text-gray-700 mb-2">
                             Hari <span class="text-red-500">*</span>

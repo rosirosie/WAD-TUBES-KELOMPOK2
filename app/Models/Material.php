@@ -14,6 +14,7 @@ class Material extends Model
         'course',
         'week',
         'title',
+        'description',
         'file_path',
         'visibility',
     ];

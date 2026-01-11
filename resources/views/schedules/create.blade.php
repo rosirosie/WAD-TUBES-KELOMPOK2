@@ -12,23 +12,32 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="h-1 bg-indigo-600 w-full"></div> <div class="p-8">
                 <form action="{{ route('schedules.store') }}" method="POST">
-                    @csrf <div class="mb-6">
+                    @csrf 
+                    
+                    <div class="mb-6">
                         <label class="block text-sm font-bold text-gray-700 mb-2">
                             Mata Kuliah <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" 
-                               name="subject" 
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition outline-none" 
-                               placeholder="Contoh: Pemrograman Web" 
-                               required>
+                        <div class="relative">
+                            <select name="subject" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition outline-none appearance-none bg-white" required>
+                                <option value="" disabled selected>-- Pilih Mata Kuliah --</option>
+                                @foreach($subjects as $subjectOption)
+                                    <option value="{{ $subjectOption }}" {{ old('subject') == $subjectOption ? 'selected' : '' }}>
+                                        {{ $subjectOption }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
                     </div>
-
                     <div class="mb-6">
                         <label class="block text-sm font-bold text-gray-700 mb-2">
                             Hari <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <select name="day" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition outline-none appearance-none bg-white">
+                            <select name="day" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition outline-none appearance-none bg-white" required>
                                 <option value="" disabled selected>-- Pilih Hari --</option>
                                 <option value="Senin">Senin</option>
                                 <option value="Selasa">Selasa</option>

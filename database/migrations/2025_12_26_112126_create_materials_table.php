@@ -14,6 +14,10 @@ return new class extends Migration
             $table->string('course');      // Mata Kuliah
             $table->string('week');        // Minggu ke
             $table->string('title');       // Judul Materi
+            
+            // --- BOOKS ---
+            $table->text('description')->nullable(); // Deskripsi, Penulis, Tahun
+
             $table->string('file_path');   // Lokasi file
             $table->enum('visibility', ['public', 'private'])->default('public');
             $table->timestamps();

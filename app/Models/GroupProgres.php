@@ -5,19 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class GroupTask extends Model
+class GroupProgres extends Model
 {
     use HasFactory;
 
     protected $table = 'group_progres';
 
-    protected $fillable = [
-        'group_team_id', 
-        'title',         
-        'assigned_to',   
-        'is_completed',  
-    ];
-
+    protected $guarded = [];
+  
     public function team()
     {
         return $this->belongsTo(GroupTeam::class, 'group_team_id');
